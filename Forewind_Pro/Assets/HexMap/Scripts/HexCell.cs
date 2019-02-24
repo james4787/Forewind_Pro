@@ -1,0 +1,31 @@
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace Forewind
+{
+	public class HexCell : MonoBehaviour {
+
+        public HexCoordinates coordinates;
+
+        public Color color;
+
+        public int elevation;
+
+        // 存储临近对象索引
+        [SerializeField]
+        HexCell[] neighbors;
+
+        public HexCell GetNeighbor(HexDirection direction)
+        {
+            return neighbors[(int) direction];
+        }
+
+        public void SetNeighbor(HexDirection direction, HexCell cell)
+        {
+            neighbors[(int) direction] = cell;
+            cell.neighbors[(int) direction.Opposite()] = this;
+        }
+
+    }
+}
