@@ -43,6 +43,20 @@ namespace Forewind
             hexMesh.Triangulate(cells);
         }
 
+        /// <summary>
+        /// 获取相应位置的六边形晶格引用
+        /// </summary>
+        /// <param name="position"></param>
+        /// <returns></returns>
+        public HexCell GetCell(Vector3 position)
+        {
+            position = transform.InverseTransformPoint(position);
+            HexCoordinates coordinates = HexCoordinates.FromPosition(position);
+            // 此处对应于偏移X的斜向序列，所以要加z/2
+            int index = coordinates.X + coordinates.Z * width + coordinates.Z / 2;
+
+            return cells[index];
+        }
 
         /// <summary>
         /// 生成单位六边形
@@ -91,21 +105,14 @@ namespace Forewind
 
             Text label = Instantiate<Text>(cellLabelPrefab);
             label.rectTransform.SetParent(gridCanvas.transform, false);
-            label.rectTransform.anchoredPosition =
-                new Vector2(position.x, position.z);
+            label.rectTransform.anchoredPosition = new Vector2(position.x, position.z);
             label.text = cell.coordinates.ToStringOnSeparateLines();
+
+            // 赋予每个晶胞UI组件引用
+            cell.uiRect = label.rectTransform;
+
         }
 
-        // 
-        public HexCell GetCell(Vector3 position)
-        {
-            position = transform.InverseTransformPoint(position);
-            HexCoordinates coordinates = HexCoordinates.FromPosition(position);
-            // 此处对应于偏移X的斜向序列，所以要加z/2
-            int index = coordinates.X + coordinates.Z * width + coordinates.Z / 2;
-
-            return cells[index];
-        }
 
         /// <summary>
         /// 将格栅进行三角化
