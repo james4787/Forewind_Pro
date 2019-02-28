@@ -21,6 +21,13 @@ namespace Forewind
 
         Canvas gridCanvas;
         HexMesh hexMesh;
+        // 柏林噪声纹理
+        public Texture2D noiseSource;
+
+        void OnEnable()
+        {
+            HexMetrics.noiseSource = noiseSource;
+        }
 
         void Awake()
         {
@@ -111,6 +118,7 @@ namespace Forewind
             // 赋予每个晶胞UI组件引用
             cell.uiRect = label.rectTransform;
 
+            cell.Elevation = 0;
         }
 
 

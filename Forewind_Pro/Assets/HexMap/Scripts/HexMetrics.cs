@@ -16,11 +16,11 @@ namespace Forewind
 
         public const float innerRadius = outerRadius * 0.866025404f;
 
-        public const float solidFactor = 0.75f;
+        public const float solidFactor = 0.8f;
 
         public const float blendFactor = 1f - solidFactor;
 
-        public const float elevationStep = 5f;
+        public const float elevationStep = 3f;
 
         public const int terracesPerSlope = 2;
         // 阶梯数量
@@ -29,6 +29,14 @@ namespace Forewind
         public const float horizontalTerraceStepSize = 1f / terraceSteps;
         // 单位阶梯的垂直步长
         public const float verticalTerraceStepSize = 1f / (terracesPerSlope + 1);
+        // 柏林噪声纹理
+        public static Texture2D noiseSource;
+        // 噪声扰动强度，强度为一时，最大值为根号三
+        public const float cellPerturbStrength = 4f;
+        // 噪声取样范围
+        public const float noiseScale = 0.003f;
+        // 垂直方向扰动强度
+        public const float elevationPerturbStrength = 1.5f;
 
         static Vector3[] corners = {
             new Vector3(0f, 0f, outerRadius),
@@ -121,6 +129,19 @@ namespace Forewind
                 return HexEdgeType.Slope;
             }
             return HexEdgeType.Cliff;
+        }
+
+        /// <summary>
+        /// 获取样本噪声
+        /// </summary>
+        /// <param name="position"></param>
+        /// <returns></returns>
+        public static Vector4 SampleNoise(Vector3 position)
+        {
+            return noiseSource.GetPixelBilinear(
+                position.x * noiseScale,
+                position.z * noiseScale
+            );
         }
     }
 }
