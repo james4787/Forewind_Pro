@@ -7,10 +7,14 @@ namespace Forewind
 {
     public class HexGrid : MonoBehaviour
     {
-        // 横向晶胞数
-        public int width = 6;
-        // 纵向晶胞数
-        public int height = 6;
+        // 横向晶胞数  纵向晶胞数
+        int cellCountX, cellCountZ;
+
+        // 区块参数
+        public int chunkCountX = 4, chunkCountZ = 3;
+
+        public HexGridChunk chunkPrefab;
+        HexGridChunk[] chunks;
 
         public Color defaultColor = Color.white;
 
@@ -19,35 +23,45 @@ namespace Forewind
         HexCell[] cells;
         public Text cellLabelPrefab;
 
-        Canvas gridCanvas;
-        HexMesh hexMesh;
         // 柏林噪声纹理
         public Texture2D noiseSource;
 
-        void OnEnable()
-        {
-            HexMetrics.noiseSource = noiseSource;
-        }
-
         void Awake()
         {
-            gridCanvas = GetComponentInChildren<Canvas>();
-            hexMesh = GetComponentInChildren<HexMesh>();
+            HexMetrics.noiseSource = noiseSource;
 
-            cells = new HexCell[height * width];
+            cellCountX = chunkCountX * HexMetrics.chunkSizeX;
+            cellCountZ = chunkCountZ * HexMetrics.chunkSizeZ;
 
-            for (int z = 0, i = 0; z < height; z++)
+            CreateChunks();
+            CreateCells();
+        }
+
+        void CreateChunks()
+        {
+            chunks = new HexGridChunk[chunkCountX * chunkCountZ];
+
+            for (int z = 0, i = 0; z < chunkCountZ; z++)
             {
-                for (int x = 0; x < width; x++)
+                for (int x = 0; x < chunkCountX; x++)
                 {
-                    CreateCell(x, z, i++);
+                    HexGridChunk chunk = chunks[i++] = Instantiate(chunkPrefab);
+                    chunk.transform.SetParent(transform);
                 }
             }
         }
 
-        void Start()
+        void CreateCells()
         {
-            hexMesh.Triangulate(cells);
+            cells = new HexCell[cellCountZ * cellCountX];
+
+            for (int z = 0, i = 0; z < cellCountZ; z++)
+            {
+                for (int x = 0; x < cellCountX; x++)
+                {
+                    CreateCell(x, z, i++);
+                }
+            }
         }
 
         /// <summary>
@@ -60,7 +74,7 @@ namespace Forewind
             position = transform.InverseTransformPoint(position);
             HexCoordinates coordinates = HexCoordinates.FromPosition(position);
             // 此处对应于偏移X的斜向序列，所以要加z/2
-            int index = coordinates.X + coordinates.Z * width + coordinates.Z / 2;
+            int index = coordinates.X + coordinates.Z * cellCountX + coordinates.Z / 2;
 
             return cells[index];
         }
@@ -79,10 +93,9 @@ namespace Forewind
             position.z = z * (1.5f * HexMetrics.outerRadius);
 
             HexCell cell = cells[i] = Instantiate<HexCell>(cellPrefab);
-            cell.transform.SetParent(transform, false);
             cell.transform.localPosition = position;
             cell.coordinates = HexCoordinates.FromOffsetCoordinates(x, z);
-            cell.color = defaultColor;
+            cell.Color = defaultColor;
 
             if (x > 0)
             {
@@ -93,41 +106,49 @@ namespace Forewind
                 // 奇数行填充
                 if ((z & 1) == 0)
                 {
-                    cell.SetNeighbor(HexDirection.SE, cells[i - width]);
+                    cell.SetNeighbor(HexDirection.SE, cells[i - cellCountX]);
                     if (x > 0)
                     {
-                        cell.SetNeighbor(HexDirection.SW, cells[i - width - 1]);
+                        cell.SetNeighbor(HexDirection.SW, cells[i - cellCountX - 1]);
                     }
                 }
                 // 偶数行填充
                 else
                 {
-                    cell.SetNeighbor(HexDirection.SW, cells[i - width]);
-                    if (x < width - 1)
+                    cell.SetNeighbor(HexDirection.SW, cells[i - cellCountX]);
+                    if (x < cellCountX - 1)
                     {
-                        cell.SetNeighbor(HexDirection.SE, cells[i - width + 1]);
+                        cell.SetNeighbor(HexDirection.SE, cells[i - cellCountX + 1]);
                     }
                 }
             }
 
             Text label = Instantiate<Text>(cellLabelPrefab);
-            label.rectTransform.SetParent(gridCanvas.transform, false);
             label.rectTransform.anchoredPosition = new Vector2(position.x, position.z);
             label.text = cell.coordinates.ToStringOnSeparateLines();
-
             // 赋予每个晶胞UI组件引用
             cell.uiRect = label.rectTransform;
 
             cell.Elevation = 0;
+
+            AddCellToChunk(x, z, cell);
         }
 
-
         /// <summary>
-        /// 将格栅进行三角化
+        /// 将晶胞添加至相应的区块
         /// </summary>
-        public void Refresh()
+        /// <param name="x"></param>
+        /// <param name="z"></param>
+        /// <param name="cell"></param>
+        void AddCellToChunk(int x, int z, HexCell cell)
         {
-            hexMesh.Triangulate(cells);
+            int chunkX = x / HexMetrics.chunkSizeX;
+            int chunkZ = z / HexMetrics.chunkSizeZ;
+            HexGridChunk chunk = chunks[chunkX + chunkZ * chunkCountX];
+
+            int localX = x - chunkX * HexMetrics.chunkSizeX;
+            int localZ = z - chunkZ * HexMetrics.chunkSizeZ;
+            chunk.AddCell(localX + localZ * HexMetrics.chunkSizeX, cell);
         }
     }
 }

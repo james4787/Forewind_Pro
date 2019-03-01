@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 namespace Forewind
 {
-	public class HexMapEditor : MonoBehaviour {
+    public class HexMapEditor : MonoBehaviour
+    {
 
         public Color[] colors;
 
@@ -13,13 +15,17 @@ namespace Forewind
 
         private Color activeColor;
         int activeElevation = 0;
+        bool applyColor = false;
+        bool applyElevation = true;
 
+        public Toggle blank;
+        public Toggle elevation;
         /// <summary>
         /// 初始化起始颜色
         /// </summary>
         void Awake()
         {
-            SelectColor(0);
+            SelectColor(-1);
         }
 
         void Update()
@@ -51,10 +57,14 @@ namespace Forewind
         /// <param name="cell"></param>
         void EditCell(HexCell cell)
         {
-            cell.color = activeColor;
-            cell.Elevation = activeElevation;
-
-            hexGrid.Refresh();
+            if (applyColor)
+            {
+                cell.Color = activeColor;
+            }
+            if (applyElevation)
+            {
+                cell.Elevation = activeElevation;
+            }
         }
 
         /// <summary>
@@ -63,7 +73,13 @@ namespace Forewind
         /// <param name="index"></param>
         public void SelectColor(int index)
         {
-            activeColor = colors[index];
+            applyColor = index >= 0;
+            if (applyColor)
+            {
+                activeColor = colors[index];
+            }
+            elevation.isOn = !applyColor;
+            applyElevation = !applyColor;
         }
 
         /// <summary>
@@ -73,7 +89,17 @@ namespace Forewind
         public void SetElevation(float elevation)
         {
             activeElevation = (int) elevation;
-            Debug.Log("slider elevation:" + elevation);
+        }
+
+        /// <summary>
+        /// UI Toggle高度选项注册事件
+        /// </summary>
+        /// <param name="toggle"></param>
+        public void SetApplyElevation(bool toggle)
+        {
+            blank.isOn = toggle;
+            applyElevation = toggle;
+            applyColor = !toggle;
         }
     }
 }

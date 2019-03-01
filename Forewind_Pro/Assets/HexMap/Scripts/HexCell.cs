@@ -35,11 +35,30 @@ namespace Forewind
     {
         public HexCoordinates coordinates;
 
-        public Color color;
+        public Color Color
+        {
+            get
+            {
+                return color;
+            }
+            set
+            {
+                if (color == value)
+                {
+                    return;
+                }
+                color = value;
+                Refresh();
+            }
+        }
 
-        private int elevation;
+        Color color;
+
+        int elevation = int.MinValue;
 
         public RectTransform uiRect;
+        // 获取所属区块的引用
+        public HexGridChunk chunk;
 
         public int Elevation
         {
@@ -49,7 +68,11 @@ namespace Forewind
             }
             set
             {
-                Debug.Log(value);
+                // 如果相等不更新网格数据
+                if (elevation == value)
+                {
+                    return;
+                }
                 // 六边形高度设置
                 elevation = value;
                 Vector3 position = transform.localPosition;
@@ -64,6 +87,9 @@ namespace Forewind
                 Vector3 uiPosition = uiRect.localPosition;
                 uiPosition.z = -position.y;
                 uiRect.localPosition = uiPosition;
+
+                // 区域刷新，更新区块网格
+                Refresh();
             }
         }
 
@@ -104,6 +130,27 @@ namespace Forewind
             return HexMetrics.GetEdgeType(
                 elevation, otherCell.elevation
             );
+        }
+
+        /// <summary>
+        /// 区域刷新，更新区块网格（私有方法）
+        /// </summary>
+        void Refresh()
+        {
+            // 只有当获取到引用时才刷新
+            if (chunk)
+            {
+                chunk.Refresh();
+                // 相邻的不同区块也进行刷新
+                for (int i = 0; i < neighbors.Length; i++)
+                {
+                    HexCell neighbor = neighbors[i];
+                    if (neighbor != null && neighbor.chunk != chunk)
+                    {
+                        neighbor.chunk.Refresh();
+                    }
+                }
+            }
         }
     }
 }

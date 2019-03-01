@@ -37,6 +37,8 @@ namespace Forewind
         public const float noiseScale = 0.003f;
         // 垂直方向扰动强度
         public const float elevationPerturbStrength = 1.5f;
+        // 区块单位数
+        public const int chunkSizeX = 5, chunkSizeZ = 5;
 
         static Vector3[] corners = {
             new Vector3(0f, 0f, outerRadius),
