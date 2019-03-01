@@ -80,6 +80,26 @@ namespace Forewind
         }
 
         /// <summary>
+        /// 笔刷绘制六边形网格获取晶格引用
+        /// </summary>
+        /// <param name="coordinates"></param>
+        /// <returns></returns>
+        public HexCell GetCell(HexCoordinates coordinates)
+        {
+            int z = coordinates.Z;
+            if (z < 0 || z >= cellCountZ)
+            {
+                return null;
+            }
+            int x = coordinates.X + z / 2;
+            if (x < 0 || x >= cellCountX)
+            {
+                return null;
+            }
+            return cells[x + z * cellCountX];
+        }
+
+        /// <summary>
         /// 生成单位六边形
         /// </summary>
         /// <param name="x"></param>
@@ -149,6 +169,18 @@ namespace Forewind
             int localX = x - chunkX * HexMetrics.chunkSizeX;
             int localZ = z - chunkZ * HexMetrics.chunkSizeZ;
             chunk.AddCell(localX + localZ * HexMetrics.chunkSizeX, cell);
+        }
+
+        /// <summary>
+        /// 显示所有UI标识
+        /// </summary>
+        /// <param name="visible"></param>
+        public void ShowUI(bool visible)
+        {
+            for (int i = 0; i < chunks.Length; i++)
+            {
+                chunks[i].ShowUI(visible);
+            }
         }
     }
 }

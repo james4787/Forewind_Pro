@@ -17,6 +17,7 @@ namespace Forewind
             hexMesh = GetComponentInChildren<HexMesh>();
 
             cells = new HexCell[HexMetrics.chunkSizeX * HexMetrics.chunkSizeZ];
+            ShowUI(false);
         }
 
         public void AddCell(int index, HexCell cell)
@@ -27,6 +28,14 @@ namespace Forewind
             cell.uiRect.SetParent(gridCanvas.transform, false);
         }
 
+        /// <summary>
+        /// Toggle 显示UI注册事件
+        /// </summary>
+        /// <param name="visible"></param>
+        public void ShowUI(bool visible)
+        {
+            gridCanvas.gameObject.SetActive(visible);
+        }
 
         public void Refresh()
         {

@@ -20,6 +20,8 @@ namespace Forewind
 
         public Toggle blank;
         public Toggle elevation;
+
+        int brushSize;
         /// <summary>
         /// 初始化起始颜色
         /// </summary>
@@ -47,7 +49,32 @@ namespace Forewind
             if (Physics.Raycast(inputRay, out hit))
             {
                 // 获取引用进行编辑
-                EditCell(hexGrid.GetCell(hit.point));
+                EditCells(hexGrid.GetCell(hit.point));
+            }
+        }
+
+        /// <summary>
+        /// 笔刷进行多个晶胞编辑
+        /// </summary>
+        /// <param name="center"></param>
+        void EditCells(HexCell center)
+        {
+            int centerX = center.coordinates.X;
+            int centerZ = center.coordinates.Z;
+
+            for (int r = 0, z = centerZ - brushSize; z <= centerZ; z++, r++)
+            {
+                for (int x = centerX - r; x <= centerX + brushSize; x++)
+                {
+                    EditCell(hexGrid.GetCell(new HexCoordinates(x, z)));
+                }
+            }
+            for (int r = 0, z = centerZ + brushSize; z > centerZ; z--, r++)
+            {
+                for (int x = centerX - brushSize; x <= centerX + r; x++)
+                {
+                    EditCell(hexGrid.GetCell(new HexCoordinates(x, z)));
+                }
             }
         }
 
@@ -57,13 +84,16 @@ namespace Forewind
         /// <param name="cell"></param>
         void EditCell(HexCell cell)
         {
-            if (applyColor)
+            if (cell)
             {
-                cell.Color = activeColor;
-            }
-            if (applyElevation)
-            {
-                cell.Elevation = activeElevation;
+                if (applyColor)
+                {
+                    cell.Color = activeColor;
+                }
+                if (applyElevation)
+                {
+                    cell.Elevation = activeElevation;
+                }
             }
         }
 
@@ -100,6 +130,24 @@ namespace Forewind
             blank.isOn = toggle;
             applyElevation = toggle;
             applyColor = !toggle;
+        }
+
+        /// <summary>
+        /// UI Slider 笔刷大小注册事件
+        /// </summary>
+        /// <param name="size"></param>
+        public void SetBrushSize(float size)
+        {
+            brushSize = (int) size;
+        }
+
+        /// <summary>
+        /// 显示所有UI标识
+        /// </summary>
+        /// <param name="visible"></param>
+        public void ShowUI(bool visible)
+        {
+            hexGrid.ShowUI(visible);
         }
     }
 }
