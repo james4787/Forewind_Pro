@@ -8,6 +8,12 @@ namespace Forewind
 {
     public class HexMapEditor : MonoBehaviour
     {
+        enum OptionalToggle
+        {
+            Ignore, Yes, No
+        }
+
+        OptionalToggle riverMode;
 
         public Color[] colors;
 
@@ -22,6 +28,10 @@ namespace Forewind
         public Toggle elevation;
 
         int brushSize;
+
+        bool isDrag;
+        HexDirection dragDirection;
+        HexCell previousCell;
         /// <summary>
         /// 初始化起始颜色
         /// </summary>
@@ -39,6 +49,10 @@ namespace Forewind
             {
                 HandleInput();
             }
+            else
+            {
+                previousCell = null;
+            }
         }
 
         void HandleInput()
@@ -48,9 +62,40 @@ namespace Forewind
             RaycastHit hit;
             if (Physics.Raycast(inputRay, out hit))
             {
+                HexCell currentCell = hexGrid.GetCell(hit.point);
+                if (previousCell && previousCell != currentCell)
+                {
+                    ValidateDrag(currentCell);
+                }
+                else
+                {
+                    isDrag = false;
+                }
                 // 获取引用进行编辑
-                EditCells(hexGrid.GetCell(hit.point));
+                EditCells(currentCell);
+                previousCell = currentCell;
             }
+            else
+            {
+                previousCell = null;
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="currentCell"></param>
+        void ValidateDrag(HexCell currentCell)
+        {
+            for (dragDirection = HexDirection.NE; dragDirection <= HexDirection.NW; dragDirection++)
+            {
+                if (previousCell.GetNeighbor(dragDirection) == currentCell)
+                {
+                    isDrag = true;
+                    return;
+                }
+            }
+            isDrag = false;
         }
 
         /// <summary>
@@ -93,6 +138,20 @@ namespace Forewind
                 if (applyElevation)
                 {
                     cell.Elevation = activeElevation;
+                }
+                if (riverMode == OptionalToggle.No)
+                {
+                    cell.RemoveRiver();
+                }
+                else if (isDrag && riverMode == OptionalToggle.Yes)
+                {
+                    // 支持笔刷绘制河流，主要利用获取的拖拽方向
+                    HexCell otherCell = cell.GetNeighbor(dragDirection.Opposite());
+                    if (otherCell)
+                    {
+                        // 设置流出河流方向
+                        otherCell.SetOutgoingRiver(dragDirection);
+                    }
                 }
             }
         }
@@ -148,6 +207,15 @@ namespace Forewind
         public void ShowUI(bool visible)
         {
             hexGrid.ShowUI(visible);
+        }
+
+        /// <summary>
+        /// 设置河流编辑模式 UI注册事件
+        /// </summary>
+        /// <param name="mode"></param>
+        public void SetRiverMode(int mode)
+        {
+            riverMode = (OptionalToggle) mode;
         }
     }
 }

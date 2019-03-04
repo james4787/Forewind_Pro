@@ -23,7 +23,7 @@ GameObject:
   - component: {fileID: 23916070709291322}
   - component: {fileID: 114256352190927722}
   m_Layer: 0
-  m_Name: HexMesh
+  m_Name: Terrain
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -68,7 +68,7 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1377487716190704}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
@@ -175,6 +175,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b729e83c1ffd1dc49875148484852db7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  terrain: {fileID: 114256352190927722}
 --- !u!223 &223059764548015102
 Canvas:
   m_ObjectHideFlags: 1
