@@ -82,7 +82,7 @@ namespace Forewind
         }
 
         /// <summary>
-        /// 
+        /// 判断拖拽是否有效
         /// </summary>
         /// <param name="currentCell"></param>
         void ValidateDrag(HexCell currentCell)
@@ -166,9 +166,9 @@ namespace Forewind
             if (applyColor)
             {
                 activeColor = colors[index];
+                elevation.isOn = !applyColor;
+                applyElevation = !applyColor;
             }
-            elevation.isOn = !applyColor;
-            applyElevation = !applyColor;
         }
 
         /// <summary>
@@ -186,9 +186,12 @@ namespace Forewind
         /// <param name="toggle"></param>
         public void SetApplyElevation(bool toggle)
         {
-            blank.isOn = toggle;
             applyElevation = toggle;
-            applyColor = !toggle;
+            if (toggle)
+            {
+                blank.isOn = toggle;
+                applyColor = !toggle;
+            }
         }
 
         /// <summary>

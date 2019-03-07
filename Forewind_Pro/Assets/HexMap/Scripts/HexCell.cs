@@ -1,224 +1,304 @@
 ﻿using UnityEngine;
 
-public class HexCell : MonoBehaviour {
+public class HexCell : MonoBehaviour
+{
 
-	public HexCoordinates coordinates;
+    public HexCoordinates coordinates;
+    // 获取六边形单体所属UILabel的引用
+    public RectTransform uiRect;
+    // 获取六边形单体所属区块的引用
+    public HexGridChunk chunk;
 
-	public RectTransform uiRect;
+    public Color Color
+    {
+        get
+        {
+            return color;
+        }
+        set
+        {
+            if (color == value)
+            {
+                return;
+            }
+            color = value;
+            Refresh();
+        }
+    }
 
-	public HexGridChunk chunk;
+    public int Elevation
+    {
+        get
+        {
+            return elevation;
+        }
+        set
+        {   
+            // 如果高度相等则不更新网格数据
+            if (elevation == value)
+            {
+                return;
+            }
+            // 设置六边形高度
+            elevation = value;
+            Vector3 position = transform.localPosition;
+            position.y = value * HexMetrics.elevationStep;
+            position.y +=
+                (HexMetrics.SampleNoise(position).y * 2f - 1f) *
+                HexMetrics.elevationPerturbStrength;
+            transform.localPosition = position;
 
-	public Color Color {
-		get {
-			return color;
-		}
-		set {
-			if (color == value) {
-				return;
-			}
-			color = value;
-			Refresh();
-		}
-	}
+            Vector3 uiPosition = uiRect.localPosition;
+            // UI高度设定，因为UI屏幕绕X轴旋转90度，所以高度沿Z轴负值增长
+            uiPosition.z = -position.y;
+            uiRect.localPosition = uiPosition;
 
-	public int Elevation {
-		get {
-			return elevation;
-		}
-		set {
-			if (elevation == value) {
-				return;
-			}
-			elevation = value;
-			Vector3 position = transform.localPosition;
-			position.y = value * HexMetrics.elevationStep;
-			position.y +=
-				(HexMetrics.SampleNoise(position).y * 2f - 1f) *
-				HexMetrics.elevationPerturbStrength;
-			transform.localPosition = position;
+            if (
+                hasOutgoingRiver &&
+                elevation < GetNeighbor(outgoingRiver).elevation
+            )
+            {
+                RemoveOutgoingRiver();
+            }
+            if (
+                hasIncomingRiver &&
+                elevation > GetNeighbor(incomingRiver).elevation
+            )
+            {
+                RemoveIncomingRiver();
+            }
+            // 区域刷新以更新区块网格
+            Refresh();
+        }
+    }
 
-			Vector3 uiPosition = uiRect.localPosition;
-			uiPosition.z = -position.y;
-			uiRect.localPosition = uiPosition;
+    public bool HasIncomingRiver
+    {
+        get
+        {
+            return hasIncomingRiver;
+        }
+    }
 
-			if (
-				hasOutgoingRiver &&
-				elevation < GetNeighbor(outgoingRiver).elevation
-			) {
-				RemoveOutgoingRiver();
-			}
-			if (
-				hasIncomingRiver &&
-				elevation > GetNeighbor(incomingRiver).elevation
-			) {
-				RemoveIncomingRiver();
-			}
+    public bool HasOutgoingRiver
+    {
+        get
+        {
+            return hasOutgoingRiver;
+        }
+    }
 
-			Refresh();
-		}
-	}
+    public bool HasRiver
+    {
+        get
+        {
+            return hasIncomingRiver || hasOutgoingRiver;
+        }
+    }
 
-	public bool HasIncomingRiver {
-		get {
-			return hasIncomingRiver;
-		}
-	}
+    public bool HasRiverBeginOrEnd
+    {
+        get
+        {
+            return hasIncomingRiver != hasOutgoingRiver;
+        }
+    }
 
-	public bool HasOutgoingRiver {
-		get {
-			return hasOutgoingRiver;
-		}
-	}
+    public HexDirection IncomingRiver
+    {
+        get
+        {
+            return incomingRiver;
+        }
+    }
 
-	public bool HasRiver {
-		get {
-			return hasIncomingRiver || hasOutgoingRiver;
-		}
-	}
+    public HexDirection OutgoingRiver
+    {
+        get
+        {
+            return outgoingRiver;
+        }
+    }
 
-	public bool HasRiverBeginOrEnd {
-		get {
-			return hasIncomingRiver != hasOutgoingRiver;
-		}
-	}
+    public Vector3 Position
+    {
+        get
+        {
+            return transform.localPosition;
+        }
+    }
 
-	public HexDirection IncomingRiver {
-		get {
-			return incomingRiver;
-		}
-	}
+    /// <summary>
+    /// 获取河面高度
+    /// </summary>
+    public float RiverSurfaceY
+    {
+        get
+        {
+            return
+                (elevation + HexMetrics.riverSurfaceElevationOffset) *
+                HexMetrics.elevationStep;
+        }
+    }
 
-	public HexDirection OutgoingRiver {
-		get {
-			return outgoingRiver;
-		}
-	}
+    /// <summary>
+    /// 获取河床高度
+    /// </summary>
+    public float StreamBedY
+    {
+        get
+        {
+            return
+                (elevation + HexMetrics.streamBedElevationOffset) *
+                HexMetrics.elevationStep;
+        }
+    }
 
-	public Vector3 Position {
-		get {
-			return transform.localPosition;
-		}
-	}
+    Color color;
 
-	public float RiverSurfaceY {
-		get {
-			return
-				(elevation + HexMetrics.riverSurfaceElevationOffset) *
-				HexMetrics.elevationStep;
-		}
-	}
+    int elevation = int.MinValue;
 
-	public float StreamBedY {
-		get {
-			return
-				(elevation + HexMetrics.streamBedElevationOffset) *
-				HexMetrics.elevationStep;
-		}
-	}
+    // 河流逻辑判断使用
+    bool hasIncomingRiver, hasOutgoingRiver;
+    HexDirection incomingRiver, outgoingRiver;
 
-	Color color;
+    [SerializeField]
+    HexCell[] neighbors;
 
-	int elevation = int.MinValue;
+    public HexCell GetNeighbor(HexDirection direction)
+    {
+        return neighbors[(int) direction];
+    }
 
-	bool hasIncomingRiver, hasOutgoingRiver;
-	HexDirection incomingRiver, outgoingRiver;
+    public void SetNeighbor(HexDirection direction, HexCell cell)
+    {
+        neighbors[(int) direction] = cell;
+        cell.neighbors[(int) direction.Opposite()] = this;
+    }
 
-	[SerializeField]
-	HexCell[] neighbors;
+    public HexEdgeType GetEdgeType(HexDirection direction)
+    {
+        return HexMetrics.GetEdgeType(
+            elevation, neighbors[(int) direction].elevation
+        );
+    }
 
-	public HexCell GetNeighbor (HexDirection direction) {
-		return neighbors[(int)direction];
-	}
+    public HexEdgeType GetEdgeType(HexCell otherCell)
+    {
+        return HexMetrics.GetEdgeType(
+            elevation, otherCell.elevation
+        );
+    }
 
-	public void SetNeighbor (HexDirection direction, HexCell cell) {
-		neighbors[(int)direction] = cell;
-		cell.neighbors[(int)direction.Opposite()] = this;
-	}
+    public bool HasRiverThroughEdge(HexDirection direction)
+    {
+        return
+            hasIncomingRiver && incomingRiver == direction ||
+            hasOutgoingRiver && outgoingRiver == direction;
+    }
 
-	public HexEdgeType GetEdgeType (HexDirection direction) {
-		return HexMetrics.GetEdgeType(
-			elevation, neighbors[(int)direction].elevation
-		);
-	}
+    /// <summary>
+    /// 移除流入河流
+    /// </summary>
+    public void RemoveIncomingRiver()
+    {
+        if (!hasIncomingRiver)
+        {
+            return;
+        }
+        hasIncomingRiver = false;
+        RefreshSelfOnly();
 
-	public HexEdgeType GetEdgeType (HexCell otherCell) {
-		return HexMetrics.GetEdgeType(
-			elevation, otherCell.elevation
-		);
-	}
+        HexCell neighbor = GetNeighbor(incomingRiver);
+        neighbor.hasOutgoingRiver = false;
+        neighbor.RefreshSelfOnly();
+    }
 
-	public bool HasRiverThroughEdge (HexDirection direction) {
-		return
-			hasIncomingRiver && incomingRiver == direction ||
-			hasOutgoingRiver && outgoingRiver == direction;
-	}
+    /// <summary>
+    /// 移除流出河流
+    /// </summary>
+    public void RemoveOutgoingRiver()
+    {
+        if (!hasOutgoingRiver)
+        {
+            return;
+        }
+        hasOutgoingRiver = false;
+        RefreshSelfOnly();
 
-	public void RemoveIncomingRiver () {
-		if (!hasIncomingRiver) {
-			return;
-		}
-		hasIncomingRiver = false;
-		RefreshSelfOnly();
+        HexCell neighbor = GetNeighbor(outgoingRiver);
+        neighbor.hasIncomingRiver = false;
+        neighbor.RefreshSelfOnly();
+    }
 
-		HexCell neighbor = GetNeighbor(incomingRiver);
-		neighbor.hasOutgoingRiver = false;
-		neighbor.RefreshSelfOnly();
-	}
+    /// <summary>
+    /// 移除全部河流
+    /// </summary>
+    public void RemoveRiver()
+    {
+        RemoveOutgoingRiver();
+        RemoveIncomingRiver();
+    }
 
-	public void RemoveOutgoingRiver () {
-		if (!hasOutgoingRiver) {
-			return;
-		}
-		hasOutgoingRiver = false;
-		RefreshSelfOnly();
+    /// <summary>
+    /// 添加流出河流
+    /// </summary>
+    /// <param name="direction"></param>
+    public void SetOutgoingRiver(HexDirection direction)
+    {
+        if (hasOutgoingRiver && outgoingRiver == direction)
+        {
+            return;
+        }
+        // 确保流出方向的对象不为空，且高度差为正进行向下流动
+        HexCell neighbor = GetNeighbor(direction);
+        if (!neighbor || elevation < neighbor.elevation)
+        {
+            return;
+        }
+        // 移除之前的流出或与设定方向一致的流入河流
+        RemoveOutgoingRiver();
+        if (hasIncomingRiver && incomingRiver == direction)
+        {
+            RemoveIncomingRiver();
+        }
+        // 设置流出河流
+        hasOutgoingRiver = true;
+        outgoingRiver = direction;
+        RefreshSelfOnly();
+        // 同时将相邻的设为流入河流
+        neighbor.RemoveIncomingRiver();
+        neighbor.hasIncomingRiver = true;
+        neighbor.incomingRiver = direction.Opposite();
+        neighbor.RefreshSelfOnly();
+    }
 
-		HexCell neighbor = GetNeighbor(outgoingRiver);
-		neighbor.hasIncomingRiver = false;
-		neighbor.RefreshSelfOnly();
-	}
+    /// <summary>
+    /// 区域刷新，更新区块网格
+    /// </summary>
+    void Refresh()
+    {
+        // 只有当获取到引用时才刷新
+        if (chunk)
+        {
+            chunk.Refresh();
+            // 相邻的不同区块也进行刷新
+            for (int i = 0; i < neighbors.Length; i++)
+            {
+                HexCell neighbor = neighbors[i];
+                if (neighbor != null && neighbor.chunk != chunk)
+                {
+                    neighbor.chunk.Refresh();
+                }
+            }
+        }
+    }
 
-	public void RemoveRiver () {
-		RemoveOutgoingRiver();
-		RemoveIncomingRiver();
-	}
-
-	public void SetOutgoingRiver (HexDirection direction) {
-		if (hasOutgoingRiver && outgoingRiver == direction) {
-			return;
-		}
-
-		HexCell neighbor = GetNeighbor(direction);
-		if (!neighbor || elevation < neighbor.elevation) {
-			return;
-		}
-
-		RemoveOutgoingRiver();
-		if (hasIncomingRiver && incomingRiver == direction) {
-			RemoveIncomingRiver();
-		}
-		hasOutgoingRiver = true;
-		outgoingRiver = direction;
-		RefreshSelfOnly();
-
-		neighbor.RemoveIncomingRiver();
-		neighbor.hasIncomingRiver = true;
-		neighbor.incomingRiver = direction.Opposite();
-		neighbor.RefreshSelfOnly();
-	}
-
-	void Refresh () {
-		if (chunk) {
-			chunk.Refresh();
-			for (int i = 0; i < neighbors.Length; i++) {
-				HexCell neighbor = neighbors[i];
-				if (neighbor != null && neighbor.chunk != chunk) {
-					neighbor.chunk.Refresh();
-				}
-			}
-		}
-	}
-
-	void RefreshSelfOnly () {
-		chunk.Refresh();
-	}
+    /// <summary>
+    /// 只刷新自身区块，用于移除河流
+    /// </summary>
+    void RefreshSelfOnly()
+    {
+        chunk.Refresh();
+    }
 }

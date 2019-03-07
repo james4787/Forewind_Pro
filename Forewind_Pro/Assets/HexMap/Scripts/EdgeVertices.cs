@@ -4,6 +4,11 @@ public struct EdgeVertices {
 
 	public Vector3 v1, v2, v3, v4, v5;
 
+    /// <summary>
+    /// 边界均匀四等分插值
+    /// </summary>
+    /// <param name="corner1">边界顶点一</param>
+    /// <param name="corner2">边界顶点二</param>
 	public EdgeVertices (Vector3 corner1, Vector3 corner2) {
 		v1 = corner1;
 		v2 = Vector3.Lerp(corner1, corner2, 0.25f);
@@ -12,6 +17,12 @@ public struct EdgeVertices {
 		v5 = corner2;
 	}
 
+    /// <summary>
+    /// 边界两侧根据插值数量进行插值
+    /// </summary>
+    /// <param name="corner1">边界顶点一</param>
+    /// <param name="corner2">边界顶点二</param>
+    /// <param name="outerStep">插值比例</param>
 	public EdgeVertices (Vector3 corner1, Vector3 corner2, float outerStep) {
 		v1 = corner1;
 		v2 = Vector3.Lerp(corner1, corner2, outerStep);
@@ -20,6 +31,13 @@ public struct EdgeVertices {
 		v5 = corner2;
 	}
 
+    /// <summary>
+    /// 斜坡顶点插值
+    /// </summary>
+    /// <param name="a">边界顶点一</param>
+    /// <param name="b">边界顶点二</param>
+    /// <param name="step">插值数量</param>
+    /// <returns></returns>
 	public static EdgeVertices TerraceLerp (
 		EdgeVertices a, EdgeVertices b, int step)
 	{

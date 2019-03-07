@@ -1,131 +1,191 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 
-public class HexGrid : MonoBehaviour {
+public class HexGrid : MonoBehaviour
+{
+    // 区块参数
+    public int chunkCountX = 4, chunkCountZ = 3;
 
-	public int chunkCountX = 4, chunkCountZ = 3;
+    public Color defaultColor = Color.white;
 
-	public Color defaultColor = Color.white;
+    public HexCell cellPrefab;
+    public Text cellLabelPrefab;
+    public HexGridChunk chunkPrefab;
+    // 柏林噪声纹理
+    public Texture2D noiseSource;
 
-	public HexCell cellPrefab;
-	public Text cellLabelPrefab;
-	public HexGridChunk chunkPrefab;
+    HexGridChunk[] chunks;
+    HexCell[] cells;
+    // 横向晶胞数  纵向晶胞数
+    int cellCountX, cellCountZ;
 
-	public Texture2D noiseSource;
+    /// <summary>
+    /// 脚本初始化
+    /// </summary>
+    void Awake()
+    {
+        HexMetrics.noiseSource = noiseSource;
 
-	HexGridChunk[] chunks;
-	HexCell[] cells;
+        cellCountX = chunkCountX * HexMetrics.chunkSizeX;
+        cellCountZ = chunkCountZ * HexMetrics.chunkSizeZ;
 
-	int cellCountX, cellCountZ;
+        CreateChunks();
+        CreateCells();
+    }
 
-	void Awake () {
-		HexMetrics.noiseSource = noiseSource;
+    /// <summary>
+    /// 创建区块
+    /// </summary>
+    void CreateChunks()
+    {
+        chunks = new HexGridChunk[chunkCountX * chunkCountZ];
 
-		cellCountX = chunkCountX * HexMetrics.chunkSizeX;
-		cellCountZ = chunkCountZ * HexMetrics.chunkSizeZ;
+        for (int z = 0, i = 0; z < chunkCountZ; z++)
+        {
+            for (int x = 0; x < chunkCountX; x++)
+            {
+                HexGridChunk chunk = chunks[i++] = Instantiate(chunkPrefab);
+                chunk.transform.SetParent(transform);
+            }
+        }
+    }
 
-		CreateChunks();
-		CreateCells();
-	}
+    /// <summary>
+    /// 循环调用创建六边形集群
+    /// </summary>
+    void CreateCells()
+    {
+        cells = new HexCell[cellCountZ * cellCountX];
 
-	void CreateChunks () {
-		chunks = new HexGridChunk[chunkCountX * chunkCountZ];
+        for (int z = 0, i = 0; z < cellCountZ; z++)
+        {
+            for (int x = 0; x < cellCountX; x++)
+            {
+                CreateCell(x, z, i++);
+            }
+        }
+    }
 
-		for (int z = 0, i = 0; z < chunkCountZ; z++) {
-			for (int x = 0; x < chunkCountX; x++) {
-				HexGridChunk chunk = chunks[i++] = Instantiate(chunkPrefab);
-				chunk.transform.SetParent(transform);
-			}
-		}
-	}
+    void OnEnable()
+    {
+        HexMetrics.noiseSource = noiseSource;
+    }
 
-	void CreateCells () {
-		cells = new HexCell[cellCountZ * cellCountX];
+    /// <summary>
+    /// 获取相应位置的六边形晶格引用
+    /// </summary>
+    /// <param name="position">晶格位置</param>
+    /// <returns>六边形对象引用</returns>
+    public HexCell GetCell(Vector3 position)
+    {
+        position = transform.InverseTransformPoint(position);
+        HexCoordinates coordinates = HexCoordinates.FromPosition(position);
+        // 此处对应于偏移X的斜向序列，所以要加z/2
+        int index = coordinates.X + coordinates.Z * cellCountX + coordinates.Z / 2;
+        return cells[index];
+    }
 
-		for (int z = 0, i = 0; z < cellCountZ; z++) {
-			for (int x = 0; x < cellCountX; x++) {
-				CreateCell(x, z, i++);
-			}
-		}
-	}
+    /// <summary>
+    /// 笔刷绘制六边形网格获取晶格引用
+    /// </summary>
+    /// <param name="coordinates">晶格序列索引</param>
+    /// <returns>六边形对象引用</returns>
+    public HexCell GetCell(HexCoordinates coordinates)
+    {
+        int z = coordinates.Z;
+        if (z < 0 || z >= cellCountZ)
+        {
+            return null;
+        }
+        int x = coordinates.X + z / 2;
+        if (x < 0 || x >= cellCountX)
+        {
+            return null;
+        }
+        return cells[x + z * cellCountX];
+    }
 
-	void OnEnable () {
-		HexMetrics.noiseSource = noiseSource;
-	}
+    /// <summary>
+    /// 显示所有晶格对象的UI序列标识
+    /// </summary>
+    /// <param name="visible">开启标识符</param>
+    public void ShowUI(bool visible)
+    {
+        for (int i = 0; i < chunks.Length; i++)
+        {
+            chunks[i].ShowUI(visible);
+        }
+    }
 
-	public HexCell GetCell (Vector3 position) {
-		position = transform.InverseTransformPoint(position);
-		HexCoordinates coordinates = HexCoordinates.FromPosition(position);
-		int index =
-			coordinates.X + coordinates.Z * cellCountX + coordinates.Z / 2;
-		return cells[index];
-	}
+    /// <summary>
+    /// 生成单位六边形
+    /// </summary>
+    /// <param name="x">横坐标</param>
+    /// <param name="z">纵坐标</param>
+    /// <param name="i">列表元素索引</param>
+    void CreateCell(int x, int z, int i)
+    {
+        Vector3 position;
+        position.x = (x + z * 0.5f - z / 2) * (HexMetrics.innerRadius * 2f);
+        position.y = 0f;
+        position.z = z * (HexMetrics.outerRadius * 1.5f);
 
-	public HexCell GetCell (HexCoordinates coordinates) {
-		int z = coordinates.Z;
-		if (z < 0 || z >= cellCountZ) {
-			return null;
-		}
-		int x = coordinates.X + z / 2;
-		if (x < 0 || x >= cellCountX) {
-			return null;
-		}
-		return cells[x + z * cellCountX];
-	}
+        HexCell cell = cells[i] = Instantiate<HexCell>(cellPrefab);
+        cell.transform.localPosition = position;
+        cell.coordinates = HexCoordinates.FromOffsetCoordinates(x, z);
+        cell.Color = defaultColor;
 
-	public void ShowUI (bool visible) {
-		for (int i = 0; i < chunks.Length; i++) {
-			chunks[i].ShowUI(visible);
-		}
-	}
+        if (x > 0)
+        {
+            cell.SetNeighbor(HexDirection.W, cells[i - 1]);
+        }
+        if (z > 0)
+        {
+            // 奇数行填充
+            if ((z & 1) == 0)
+            {
+                cell.SetNeighbor(HexDirection.SE, cells[i - cellCountX]);
+                if (x > 0)
+                {
+                    cell.SetNeighbor(HexDirection.SW, cells[i - cellCountX - 1]);
+                }
+            }
+            // 偶数行填充
+            else
+            {
+                cell.SetNeighbor(HexDirection.SW, cells[i - cellCountX]);
+                if (x < cellCountX - 1)
+                {
+                    cell.SetNeighbor(HexDirection.SE, cells[i - cellCountX + 1]);
+                }
+            }
+        }
 
-	void CreateCell (int x, int z, int i) {
-		Vector3 position;
-		position.x = (x + z * 0.5f - z / 2) * (HexMetrics.innerRadius * 2f);
-		position.y = 0f;
-		position.z = z * (HexMetrics.outerRadius * 1.5f);
+        Text label = Instantiate<Text>(cellLabelPrefab);
+        label.rectTransform.anchoredPosition = new Vector2(position.x, position.z);
+        label.text = cell.coordinates.ToStringOnSeparateLines();
+        // 赋予每个晶胞UI组件引用
+        cell.uiRect = label.rectTransform;
 
-		HexCell cell = cells[i] = Instantiate<HexCell>(cellPrefab);
-		cell.transform.localPosition = position;
-		cell.coordinates = HexCoordinates.FromOffsetCoordinates(x, z);
-		cell.Color = defaultColor;
+        cell.Elevation = 0;
 
-		if (x > 0) {
-			cell.SetNeighbor(HexDirection.W, cells[i - 1]);
-		}
-		if (z > 0) {
-			if ((z & 1) == 0) {
-				cell.SetNeighbor(HexDirection.SE, cells[i - cellCountX]);
-				if (x > 0) {
-					cell.SetNeighbor(HexDirection.SW, cells[i - cellCountX - 1]);
-				}
-			}
-			else {
-				cell.SetNeighbor(HexDirection.SW, cells[i - cellCountX]);
-				if (x < cellCountX - 1) {
-					cell.SetNeighbor(HexDirection.SE, cells[i - cellCountX + 1]);
-				}
-			}
-		}
+        AddCellToChunk(x, z, cell);
+    }
 
-		Text label = Instantiate<Text>(cellLabelPrefab);
-		label.rectTransform.anchoredPosition =
-			new Vector2(position.x, position.z);
-		label.text = cell.coordinates.ToStringOnSeparateLines();
-		cell.uiRect = label.rectTransform;
+    /// <summary>
+    /// 将晶胞添加至相应的区块
+    /// </summary>
+    /// <param name="x">横坐标</param>
+    /// <param name="z">纵坐标</param>
+    /// <param name="cell">六边形对象</param>
+    void AddCellToChunk(int x, int z, HexCell cell)
+    {
+        int chunkX = x / HexMetrics.chunkSizeX;
+        int chunkZ = z / HexMetrics.chunkSizeZ;
+        HexGridChunk chunk = chunks[chunkX + chunkZ * chunkCountX];
 
-		cell.Elevation = 0;
-
-		AddCellToChunk(x, z, cell);
-	}
-
-	void AddCellToChunk (int x, int z, HexCell cell) {
-		int chunkX = x / HexMetrics.chunkSizeX;
-		int chunkZ = z / HexMetrics.chunkSizeZ;
-		HexGridChunk chunk = chunks[chunkX + chunkZ * chunkCountX];
-
-		int localX = x - chunkX * HexMetrics.chunkSizeX;
-		int localZ = z - chunkZ * HexMetrics.chunkSizeZ;
-		chunk.AddCell(localX + localZ * HexMetrics.chunkSizeX, cell);
-	}
+        int localX = x - chunkX * HexMetrics.chunkSizeX;
+        int localZ = z - chunkZ * HexMetrics.chunkSizeZ;
+        chunk.AddCell(localX + localZ * HexMetrics.chunkSizeX, cell);
+    }
 }
