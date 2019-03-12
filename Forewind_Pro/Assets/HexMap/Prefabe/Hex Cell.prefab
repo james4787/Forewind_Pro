@@ -56,6 +56,7 @@ MonoBehaviour:
     z: 0
   uiRect: {fileID: 224824873579646310, guid: 1fb1e0b54a424cc469f3695ee75087db, type: 2}
   chunk: {fileID: 114046827261537466, guid: 0dc0b1a1979b49349a431ef22e9a1c4b, type: 2}
+  roads: 000000000000
   neighbors:
   - {fileID: 0}
   - {fileID: 0}

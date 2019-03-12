@@ -2,12 +2,29 @@
 
 public class HexCell : MonoBehaviour
 {
-
     public HexCoordinates coordinates;
     // 获取六边形单体所属UILabel的引用
     public RectTransform uiRect;
     // 获取六边形单体所属区块的引用
     public HexGridChunk chunk;
+
+    [SerializeField]
+    bool[] roads;
+
+    public bool HasRoads
+    {
+        get
+        {
+            for (int i = 0; i < roads.Length; i++)
+            {
+                if (roads[i])
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
 
     public Color Color
     {
@@ -33,7 +50,7 @@ public class HexCell : MonoBehaviour
             return elevation;
         }
         set
-        {   
+        {
             // 如果高度相等则不更新网格数据
             if (elevation == value)
             {
@@ -67,8 +84,26 @@ public class HexCell : MonoBehaviour
             {
                 RemoveIncomingRiver();
             }
+
+            // 如果编辑高度时变化大于1，移除相应方向的道路
+            for (int i = 0; i < roads.Length; i++)
+            {
+                if (roads[i] && GetElevationDifference((HexDirection) i) > 1)
+                {
+                    SetRoad(i, false);
+                }
+            }
             // 区域刷新以更新区块网格
             Refresh();
+        }
+    }
+
+
+    public HexDirection RiverBeginOrEndDirection
+    {
+        get
+        {
+            return hasIncomingRiver ? incomingRiver : outgoingRiver;
         }
     }
 
@@ -265,12 +300,69 @@ public class HexCell : MonoBehaviour
         // 设置流出河流
         hasOutgoingRiver = true;
         outgoingRiver = direction;
-        RefreshSelfOnly();
+
         // 同时将相邻的设为流入河流
         neighbor.RemoveIncomingRiver();
         neighbor.hasIncomingRiver = true;
         neighbor.incomingRiver = direction.Opposite();
-        neighbor.RefreshSelfOnly();
+
+        SetRoad((int) direction, false);
+    }
+
+    public bool HasRoadThroughEdge(HexDirection direction)
+    {
+        return roads[(int) direction];
+    }
+
+    /// <summary>
+    /// 添加道路
+    /// </summary>
+    /// <param name="direction">相应方向</param>
+    public void AddRoad(HexDirection direction)
+    {
+        // 河流的优先级更高
+        if (!roads[(int) direction] && !HasRiverThroughEdge(direction) && GetElevationDifference(direction) <= 1)
+        {
+            SetRoad((int) direction, true);
+        }
+    }
+
+    /// <summary>
+    /// 移除当前单元道路
+    /// </summary>
+    public void RemoveRoads()
+    {
+        for (int i = 0; i < neighbors.Length; i++)
+        {
+            if (roads[i])
+            {
+                SetRoad(i, false);
+            }
+        }
+    }
+
+    /// <summary>
+    /// 获取指定方向的单位间高度差
+    /// </summary>
+    /// <param name="direction">指定方向</param>
+    /// <returns></returns>
+    public int GetElevationDifference(HexDirection direction)
+    {
+        int difference = elevation - GetNeighbor(direction).elevation;
+        return difference >= 0 ? difference : -difference;
+    }
+
+    /// <summary>
+    /// 设置道路
+    /// </summary>
+    /// <param name="index">道路索引</param>
+    /// <param name="state">添加或者移除</param>
+    void SetRoad(int index, bool state)
+    {
+        roads[index] = state;
+        neighbors[index].roads[(int) ((HexDirection) index).Opposite()] = state;
+        neighbors[index].RefreshSelfOnly();
+        RefreshSelfOnly();
     }
 
     /// <summary>

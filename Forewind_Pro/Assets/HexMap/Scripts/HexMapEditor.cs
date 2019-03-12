@@ -13,7 +13,7 @@ namespace Forewind
             Ignore, Yes, No
         }
 
-        OptionalToggle riverMode;
+        OptionalToggle riverMode, roadMode;
 
         public Color[] colors;
 
@@ -143,14 +143,26 @@ namespace Forewind
                 {
                     cell.RemoveRiver();
                 }
-                else if (isDrag && riverMode == OptionalToggle.Yes)
+                if (roadMode == OptionalToggle.No)
+                {
+                    cell.RemoveRoads();
+                }
+                if (isDrag)
                 {
                     // 支持笔刷绘制河流，主要利用获取的拖拽方向
                     HexCell otherCell = cell.GetNeighbor(dragDirection.Opposite());
                     if (otherCell)
                     {
-                        // 设置流出河流方向
-                        otherCell.SetOutgoingRiver(dragDirection);
+                        if (riverMode == OptionalToggle.Yes)
+                        {
+                            // 设置流出河流方向
+                            otherCell.SetOutgoingRiver(dragDirection);
+                        }
+                        if (roadMode == OptionalToggle.Yes)
+                        {
+                            // 设置道路走向
+                            otherCell.AddRoad(dragDirection);
+                        }
                     }
                 }
             }
@@ -219,6 +231,15 @@ namespace Forewind
         public void SetRiverMode(int mode)
         {
             riverMode = (OptionalToggle) mode;
+        }
+
+        /// <summary>
+        /// 设置道路编辑模式 UI注册事件
+        /// </summary>
+        /// <param name="mode"></param>
+        public void SetRoadMode(int mode)
+        {
+            roadMode = (OptionalToggle) mode;
         }
     }
 }
