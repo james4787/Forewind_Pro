@@ -654,11 +654,13 @@ public class HexGridChunk : MonoBehaviour
                 cell.RiverBeginOrEndDirection.Opposite()
             ) * (1f / 3f);
         }
+        // 处理直线河流对于道路的分割
         else if (cell.IncomingRiver == cell.OutgoingRiver.Opposite())
         {
             Vector3 corner;
             if (previousHasRiver)
             {
+                // 对于只有一侧有路穿越六边形一边的，将分割后的道路另一侧三角孤岛取消
                 if (!hasRoadThroughEdge && !cell.HasRoadThroughEdge(direction.Next()))
                 {
                     return;
@@ -676,16 +678,21 @@ public class HexGridChunk : MonoBehaviour
             roadCenter += corner * 0.5f;
             center += corner * 0.25f;
         }
+        // 对于Z字形河流的道路填充判断
         else if (cell.IncomingRiver == cell.OutgoingRiver.Previous())
         {
+            // 使道路中心远离河流流入方向向量的0.2
             roadCenter -= HexMetrics.GetSecondCorner(cell.IncomingRiver) * 0.2f;
         }
         else if (cell.IncomingRiver == cell.OutgoingRiver.Next())
         {
+            // 使道路中心远离河流流入方向向量的0.2
             roadCenter -= HexMetrics.GetFirstCorner(cell.IncomingRiver) * 0.2f;
         }
+        // 处理转弯平滑的河流的道路网格，此时是位于转弯弧内侧
         else if (previousHasRiver && nextHasRiver)
         {
+            // 没有道路穿过时，直接跳出方法不进行渲染
             if (!hasRoadThroughEdge)
             {
                 return;
@@ -694,8 +701,10 @@ public class HexGridChunk : MonoBehaviour
             roadCenter += offset * 0.7f;
             center += offset * 0.5f;
         }
+        // 处理转弯平滑的河流的道路网格，此时是位于转弯弧外侧
         else
         {
+            // 确定转弯弧外侧的中间方向
             HexDirection middle;
             if (previousHasRiver)
             {
@@ -709,19 +718,21 @@ public class HexGridChunk : MonoBehaviour
             {
                 middle = direction;
             }
+            // 如果剩余三个方向都没有道路，则跳出当前方法不生成道路
             if (!cell.HasRoadThroughEdge(middle) &&
                 !cell.HasRoadThroughEdge(middle.Previous()) &&
                 !cell.HasRoadThroughEdge(middle.Next()))
             {
                 return;
             }
+            // 将道路弧向中间方向的边界移动25%
             roadCenter += HexMetrics.GetSolidEdgeMiddle(middle) * 0.25f;
         }
 
         Vector3 mL = Vector3.Lerp(roadCenter, e.v1, interpolators.x);
         Vector3 mR = Vector3.Lerp(roadCenter, e.v5, interpolators.y);
         TriangulateRoad(roadCenter, mL, mR, e, hasRoadThroughEdge);
-        // 平滑处理道路与河流相遇的网格
+        // 平滑处理道路与河流相遇的网格，闭合网格空隙
         if (previousHasRiver)
         {
             TriangulateRoadEdge(roadCenter, center, mL);
