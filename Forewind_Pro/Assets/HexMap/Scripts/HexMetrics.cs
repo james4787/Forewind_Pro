@@ -30,13 +30,16 @@ public static class HexMetrics
     public const float elevationPerturbStrength = 1.5f;
     // 河床位置向下偏移高度
     public const float streamBedElevationOffset = -1.75f;
-    // 河水表面高度偏移
-    public const float riverSurfaceElevationOffset = -0.5f;
+    // 水面高度偏移
+    public const float waterElevationOffset = -0.5f;
     // 噪声取样范围
     public const float noiseScale = 0.003f;
     // 区块单位数
     public const int chunkSizeX = 5, chunkSizeZ = 5;
-
+    // 边界水面因数
+    public const float waterFactor = 0.6f;
+    // 水面网格桥接因数
+    public const float waterBlendFactor = 1f - waterFactor;
     /// <summary>
     /// 六边形各顶点的位置描述
     /// </summary>
@@ -49,6 +52,22 @@ public static class HexMetrics
         new Vector3(-innerRadius, 0f, 0.5f * outerRadius),
         new Vector3(0f, 0f, outerRadius)
     };
+
+    public static Vector3 GetFirstWaterCorner(HexDirection direction)
+    {
+        return corners[(int) direction] * waterFactor;
+    }
+
+    public static Vector3 GetSecondWaterCorner(HexDirection direction)
+    {
+        return corners[(int) direction + 1] * waterFactor;
+    }
+
+    public static Vector3 GetWaterBridge(HexDirection direction)
+    {
+        return (corners[(int) direction] + corners[(int) direction + 1]) *
+            waterBlendFactor;
+    }
 
     // 获取噪声引用
     public static Texture2D noiseSource;

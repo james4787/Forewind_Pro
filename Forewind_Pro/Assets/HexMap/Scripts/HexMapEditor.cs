@@ -21,11 +21,11 @@ namespace Forewind
 
         private Color activeColor;
         int activeElevation = 0;
+        int activeWaterLevel;
+
         bool applyColor = false;
         bool applyElevation = true;
-
-        public Toggle blank;
-        public Toggle elevation;
+        bool applyWaterLevel = true;
 
         int brushSize;
 
@@ -139,6 +139,10 @@ namespace Forewind
                 {
                     cell.Elevation = activeElevation;
                 }
+                if (applyWaterLevel)
+                {
+                    cell.WaterLevel = activeWaterLevel;
+                }
                 if (riverMode == OptionalToggle.No)
                 {
                     cell.RemoveRiver();
@@ -178,13 +182,11 @@ namespace Forewind
             if (applyColor)
             {
                 activeColor = colors[index];
-                elevation.isOn = !applyColor;
-                applyElevation = !applyColor;
             }
         }
 
         /// <summary>
-        /// UI Slider滑动条注册事件
+        /// UI Slider设置高度注册事件
         /// </summary>
         /// <param name="elevation"></param>
         public void SetElevation(float elevation)
@@ -199,11 +201,6 @@ namespace Forewind
         public void SetApplyElevation(bool toggle)
         {
             applyElevation = toggle;
-            if (toggle)
-            {
-                blank.isOn = toggle;
-                applyColor = !toggle;
-            }
         }
 
         /// <summary>
@@ -240,6 +237,24 @@ namespace Forewind
         public void SetRoadMode(int mode)
         {
             roadMode = (OptionalToggle) mode;
+        }
+
+        /// <summary>
+        /// UI 设置水面高度注册事件
+        /// </summary>
+        /// <param name="toggle"></param>
+        public void SetApplyWaterLevel(bool toggle)
+        {
+            applyWaterLevel = toggle;
+        }
+
+        /// <summary>
+        /// UI 水面高度数据OnValueChange事件
+        /// </summary>
+        /// <param name="level"></param>
+        public void SetWaterLevel(float level)
+        {
+            activeWaterLevel = (int) level;
         }
     }
 }

@@ -4,7 +4,7 @@ using UnityEngine.UI;
 public class HexGridChunk : MonoBehaviour
 {
 
-    public HexMesh terrain, rivers, roads;
+    public HexMesh terrain, rivers, roads, water, waterShore;
 
     HexCell[] cells;
 
@@ -62,6 +62,8 @@ public class HexGridChunk : MonoBehaviour
         terrain.Clear();
         rivers.Clear();
         roads.Clear();
+        water.Clear();
+        waterShore.Clear();
         for (int i = 0; i < cells.Length; i++)
         {
             Triangulate(cells[i]);
@@ -69,6 +71,8 @@ public class HexGridChunk : MonoBehaviour
         terrain.Apply();
         rivers.Apply();
         roads.Apply();
+        water.Apply();
+        waterShore.Apply();
     }
 
     /// <summary>
@@ -126,11 +130,129 @@ public class HexGridChunk : MonoBehaviour
         {
             TriangulateConnection(direction, cell, e);
         }
+
+        if (cell.IsUnderwater)
+        {
+            TriangulateWater(direction, cell, center);
+        }
     }
 
-    void TriangulateAdjacentToRiver(
-        HexDirection direction, HexCell cell, Vector3 center, EdgeVertices e
-    )
+    /// <summary>
+    /// 生成水面
+    /// </summary>
+    /// <param name="direction"></param>
+    /// <param name="cell"></param>
+    /// <param name="center"></param>
+    void TriangulateWater(HexDirection direction, HexCell cell, Vector3 center)
+    {
+        center.y = cell.WaterSurfaceY;
+
+        HexCell neighbor = cell.GetNeighbor(direction);
+        if (neighbor != null && !neighbor.IsUnderwater)
+        {
+            TriangulateWaterShore(direction, cell, neighbor, center);
+        }
+        else
+        {
+            TriangulateOpenWater(direction, cell, neighbor, center);
+        }
+    }
+
+    /// <summary>
+    /// 处理大面积水域
+    /// </summary>
+    /// <param name="direction"></param>
+    /// <param name="cell"></param>
+    /// <param name="neighbor"></param>
+    /// <param name="center"></param>
+    void TriangulateOpenWater(HexDirection direction, HexCell cell, HexCell neighbor, Vector3 center)
+    {
+        Vector3 c1 = center + HexMetrics.GetFirstWaterCorner(direction);
+        Vector3 c2 = center + HexMetrics.GetSecondWaterCorner(direction);
+
+        water.AddTriangle(center, c1, c2);
+        // 连接相邻的水面
+        if (direction <= HexDirection.SE && neighbor != null)
+        {
+            Vector3 bridge = HexMetrics.GetWaterBridge(direction);
+            Vector3 e1 = c1 + bridge;
+            Vector3 e2 = c2 + bridge;
+
+            water.AddQuad(c1, c2, e1, e2);
+            // 填充三角空隙
+            if (direction <= HexDirection.E)
+            {
+                HexCell nextNeighbor = cell.GetNeighbor(direction.Next());
+                if (nextNeighbor == null || !nextNeighbor.IsUnderwater)
+                {
+                    return;
+                }
+                water.AddTriangle(c2, e2, c2 + HexMetrics.GetWaterBridge(direction.Next()));
+            }
+        }
+    }
+
+    /// <summary>
+    /// 处理水面与岸边接壤部分
+    /// </summary>
+    /// <param name="direction"></param>
+    /// <param name="cell"></param>
+    /// <param name="neighbor"></param>
+    /// <param name="center"></param>
+    void TriangulateWaterShore(HexDirection direction, HexCell cell, HexCell neighbor, Vector3 center)
+    {
+        // 为匹配岸基网格，将边界位置进行扰动
+        EdgeVertices e1 = new EdgeVertices(
+            center + HexMetrics.GetFirstWaterCorner(direction),
+            center + HexMetrics.GetSecondWaterCorner(direction)
+        );
+        water.AddTriangle(center, e1.v1, e1.v2);
+        water.AddTriangle(center, e1.v2, e1.v3);
+        water.AddTriangle(center, e1.v3, e1.v4);
+        water.AddTriangle(center, e1.v4, e1.v5);
+
+        // 通过长矩形来填充相接部分
+        Vector3 center2 = neighbor.Position;
+        center2.y = center.y;
+        EdgeVertices e2 = new EdgeVertices(
+            center2 + HexMetrics.GetSecondSolidCorner(direction.Opposite()),
+            center2 + HexMetrics.GetFirstSolidCorner(direction.Opposite())
+        );
+        waterShore.AddQuad(e1.v1, e1.v2, e2.v1, e2.v2);
+        waterShore.AddQuad(e1.v2, e1.v3, e2.v2, e2.v3);
+        waterShore.AddQuad(e1.v3, e1.v4, e2.v3, e2.v4);
+        waterShore.AddQuad(e1.v4, e1.v5, e2.v4, e2.v5);
+        waterShore.AddQuadUV(0f, 0f, 0f, 1f);
+        waterShore.AddQuadUV(0f, 0f, 0f, 1f);
+        waterShore.AddQuadUV(0f, 0f, 0f, 1f);
+        waterShore.AddQuadUV(0f, 0f, 0f, 1f);
+
+        // 填充边角的三角形缝隙
+        HexCell nextNeighbor = cell.GetNeighbor(direction.Next());
+        if (nextNeighbor != null)
+        {
+            Vector3 v3 = nextNeighbor.Position + (nextNeighbor.IsUnderwater ?
+                HexMetrics.GetFirstWaterCorner(direction.Previous()) :
+                HexMetrics.GetFirstSolidCorner(direction.Previous()));
+            v3.y = center.y;
+
+            waterShore.AddTriangle(e1.v5, e2.v5, v3);
+            waterShore.AddTriangleUV(
+                new Vector2(0f, 0f),
+                new Vector2(0f, 1f),
+                new Vector2(0f, nextNeighbor.IsUnderwater ? 0f : 1f)
+            );
+        }
+    }
+
+    /// <summary>
+    /// 处理与河流相接的网格
+    /// </summary>
+    /// <param name="direction"></param>
+    /// <param name="cell"></param>
+    /// <param name="center"></param>
+    /// <param name="e"></param>
+    void TriangulateAdjacentToRiver(HexDirection direction, HexCell cell, Vector3 center, EdgeVertices e)
     {
         // 创建河流时，要特别处理道路的生成
         if (cell.HasRoads)
@@ -603,7 +725,14 @@ public class HexGridChunk : MonoBehaviour
             );
         }
     }
-    
+
+    /// <summary>
+    /// 没有河流时生成道路网格
+    /// </summary>
+    /// <param name="direction"></param>
+    /// <param name="cell"></param>
+    /// <param name="center"></param>
+    /// <param name="e"></param>
     void TriangulateWithoutRiver(HexDirection direction, HexCell cell, Vector3 center, EdgeVertices e)
     {
         TriangulateEdgeFan(center, e, cell.Color);
@@ -621,7 +750,12 @@ public class HexGridChunk : MonoBehaviour
         }
     }
 
-
+    /// <summary>
+    /// 获取道路插值参数
+    /// </summary>
+    /// <param name="direction"></param>
+    /// <param name="cell"></param>
+    /// <returns></returns>
     Vector2 GetRoadInterpolators(HexDirection direction, HexCell cell)
     {
         Vector2 interpolators;
@@ -639,7 +773,13 @@ public class HexGridChunk : MonoBehaviour
         return interpolators;
     }
 
-
+    /// <summary>
+    /// 道路临近河流时的网格处理
+    /// </summary>
+    /// <param name="direction"></param>
+    /// <param name="cell"></param>
+    /// <param name="center"></param>
+    /// <param name="e"></param>
     void TriangulateRoadAdjacentToRiver(HexDirection direction, HexCell cell, Vector3 center, EdgeVertices e)
     {
         bool hasRoadThroughEdge = cell.HasRoadThroughEdge(direction);
