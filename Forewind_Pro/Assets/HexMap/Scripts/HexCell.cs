@@ -24,6 +24,7 @@ public class HexCell : MonoBehaviour
                 return;
             }
             waterLevel = value;
+            ValidateRivers();
             Refresh();
         }
     }
@@ -97,20 +98,7 @@ public class HexCell : MonoBehaviour
             uiPosition.z = -position.y;
             uiRect.localPosition = uiPosition;
 
-            if (
-                hasOutgoingRiver &&
-                elevation < GetNeighbor(outgoingRiver).elevation
-            )
-            {
-                RemoveOutgoingRiver();
-            }
-            if (
-                hasIncomingRiver &&
-                elevation > GetNeighbor(incomingRiver).elevation
-            )
-            {
-                RemoveIncomingRiver();
-            }
+            ValidateRivers();
 
             // 如果编辑高度时变化大于1，移除相应方向的道路
             for (int i = 0; i < roads.Length; i++)
@@ -125,6 +113,12 @@ public class HexCell : MonoBehaviour
         }
     }
 
+    bool IsValidRiverDestination(HexCell neighbor)
+    {
+        return neighbor && (
+            elevation >= neighbor.elevation || waterLevel == neighbor.elevation
+        );
+    }
 
     public HexDirection RiverBeginOrEndDirection
     {
@@ -327,7 +321,7 @@ public class HexCell : MonoBehaviour
         }
         // 确保流出方向的对象不为空，且高度差为正进行向下流动
         HexCell neighbor = GetNeighbor(direction);
-        if (!neighbor || elevation < neighbor.elevation)
+        if (!IsValidRiverDestination(neighbor))
         {
             return;
         }
@@ -347,6 +341,23 @@ public class HexCell : MonoBehaviour
         neighbor.incomingRiver = direction.Opposite();
 
         SetRoad((int) direction, false);
+    }
+
+    /// <summary>
+    /// 在改变海拔或水位时，必须验证河流
+    /// </summary>
+    void ValidateRivers()
+    {
+        if (hasOutgoingRiver &&
+            !IsValidRiverDestination(GetNeighbor(outgoingRiver)))
+        {
+            RemoveOutgoingRiver();
+        }
+        if (hasIncomingRiver &&
+            !GetNeighbor(incomingRiver).IsValidRiverDestination(this))
+        {
+            RemoveIncomingRiver();
+        }
     }
 
     public bool HasRoadThroughEdge(HexDirection direction)
