@@ -18,13 +18,15 @@ public class HexGrid : MonoBehaviour
     HexCell[] cells;
     // 横向晶胞数  纵向晶胞数
     int cellCountX, cellCountZ;
-
+    // 随机数种子
+    public int seed;
     /// <summary>
     /// 脚本初始化
     /// </summary>
     void Awake()
     {
         HexMetrics.noiseSource = noiseSource;
+        HexMetrics.InitializeHashGrid(seed);
 
         cellCountX = chunkCountX * HexMetrics.chunkSizeX;
         cellCountZ = chunkCountZ * HexMetrics.chunkSizeZ;
@@ -68,7 +70,11 @@ public class HexGrid : MonoBehaviour
 
     void OnEnable()
     {
-        HexMetrics.noiseSource = noiseSource;
+        if (!HexMetrics.noiseSource)
+        {
+            HexMetrics.noiseSource = noiseSource;
+            HexMetrics.InitializeHashGrid(seed);
+        }
     }
 
     /// <summary>

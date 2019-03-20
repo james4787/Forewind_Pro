@@ -40,6 +40,40 @@ public static class HexMetrics
     public const float waterFactor = 0.6f;
     // 水面网格桥接因数
     public const float waterBlendFactor = 1f - waterFactor;
+    // 填充随机数据大小
+    public const int hashGridSize = 256;
+    // 缩放系数
+    public const float hashGridScale = 0.25f;
+    // 随机数据数组
+    static HexHash[] hashGrid;
+
+    static float[][] featureThresholds = {
+        new float[] {0.0f, 0.0f, 0.4f},
+        new float[] {0.0f, 0.4f, 0.6f},
+        new float[] {0.4f, 0.6f, 0.8f}
+    };
+
+    public static float[] GetFeatureThresholds(int level)
+    {
+        return featureThresholds[level];
+    }
+
+    /// <summary>
+    /// 初始化随机数组
+    /// </summary>
+    /// <param name="seed"></param>
+    public static void InitializeHashGrid(int seed)
+    {
+        Random.State currentState = Random.state;
+        hashGrid = new HexHash[hashGridSize * hashGridSize];
+        Random.InitState(seed);
+        for (int i = 0; i < hashGrid.Length; i++)
+        {
+            hashGrid[i] = HexHash.Create();
+        }
+        Random.state = currentState;
+    }
+
     /// <summary>
     /// 六边形各顶点的位置描述
     /// </summary>
@@ -69,6 +103,25 @@ public static class HexMetrics
             waterBlendFactor;
     }
 
+    /// <summary>
+    /// 通过网格索引来获取随机数组采样值
+    /// </summary>
+    /// <param name="position"></param>
+    /// <returns></returns>
+    public static HexHash SampleHashGrid(Vector3 position)
+    {
+        int x = (int) (position.x * hashGridScale) % hashGridSize;
+        if (x < 0)
+        {
+            x += hashGridSize;
+        }
+        int z = (int) (position.z * hashGridScale) % hashGridSize;
+        if (z < 0)
+        {
+            z += hashGridSize;
+        }
+        return hashGrid[x + z * hashGridSize];
+    }
     // 获取噪声引用
     public static Texture2D noiseSource;
 

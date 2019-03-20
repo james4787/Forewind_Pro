@@ -22,10 +22,12 @@ namespace Forewind
         private Color activeColor;
         int activeElevation = 0;
         int activeWaterLevel;
+        int activeUrbanLevel, activeFarmLevel, activePlantLevel;
 
         bool applyColor = false;
         bool applyElevation = true;
         bool applyWaterLevel = true;
+        bool applyUrbanLevel, applyFarmLevel, applyPlantLevel;
 
         int brushSize;
 
@@ -123,6 +125,45 @@ namespace Forewind
             }
         }
 
+        public void SetApplyFarmLevel(bool toggle)
+        {
+            applyFarmLevel = toggle;
+        }
+
+        public void SetFarmLevel(float level)
+        {
+            activeFarmLevel = (int) level;
+        }
+
+        public void SetApplyPlantLevel(bool toggle)
+        {
+            applyPlantLevel = toggle;
+        }
+
+        public void SetPlantLevel(float level)
+        {
+            activePlantLevel = (int) level;
+        }
+
+
+        /// <summary>
+        /// UI事件 是否设置地图细节
+        /// </summary>
+        /// <param name="toggle"></param>
+        public void SetApplyUrbanLevel(bool toggle)
+        {
+            applyUrbanLevel = toggle;
+        }
+
+        /// <summary>
+        /// UI事件 设置地图细节程度 默认为0
+        /// </summary>
+        /// <param name="level"></param>
+        public void SetUrbanLevel(float level)
+        {
+            activeUrbanLevel = (int) level;
+        }
+
         /// <summary>
         /// 编辑六边形晶胞参数
         /// </summary>
@@ -142,6 +183,18 @@ namespace Forewind
                 if (applyWaterLevel)
                 {
                     cell.WaterLevel = activeWaterLevel;
+                }
+                if (applyUrbanLevel)
+                {
+                    cell.UrbanLevel = activeUrbanLevel;
+                }
+                if (applyFarmLevel)
+                {
+                    cell.FarmLevel = activeFarmLevel;
+                }
+                if (applyPlantLevel)
+                {
+                    cell.PlantLevel = activePlantLevel;
                 }
                 if (riverMode == OptionalToggle.No)
                 {
